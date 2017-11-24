@@ -1634,7 +1634,7 @@ var Chess = function(fen) {
   };
 };
 
-export default Chess;
+//export default Chess;
 
 /* export Chess object if using node or any other CommonJS compatible
  * environment */
