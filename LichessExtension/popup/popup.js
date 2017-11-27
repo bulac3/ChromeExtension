@@ -8,25 +8,6 @@ chrome.runtime.onMessage.addListener(
     }
 );
 
-function onWindowLoad() {
-    var message = document.querySelector('#message');
-    chrome.tabs.executeScript(null, {
-        file: "popup/chess.js"
-    }, nextScript);
-
-    function nextScript() {
-        if (chrome.runtime.lastError) {
-            message.innerText = 'There was an error injecting script : \n' + chrome.runtime.lastError.message;
-            return;
-        }
-        chrome.tabs.executeScript(null, {
-            file: "popup/embeded.js"
-        });
-    }
-}
-
-window.onload = onWindowLoad;
-
 function loadTraps(callback) {
     chrome.storage.sync.get("trapStorage", function (items) {
         this.trapStorage = items.trapStorage;
@@ -38,3 +19,17 @@ function saveTraps() {
         return items.trapStorage;
     });
 }
+
+function addTrapSendMessage(){
+        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "addTrap" }, function (response) {
+            console.log("resp received");
+        });
+    });
+}
+
+function onWindowLoad() {
+    document.querySelector(".add-trap").addEventListener("click", addTrapSendMessage);
+}
+
+window.addEventListener("load", onWindowLoad)

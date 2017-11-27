@@ -6,12 +6,13 @@
   "permissions": [ "tabs", "storage", "<all_urls>" ],
   "content_scripts": [
     {
-      // Change 'matches' attribute to load content
-      // script only in pages you want to.
       "matches": [ "*://*.lichess.org/*" ],
-      "js": [ "popup/chess.js", "popup/contentscript.js" ]
+      "js": [ "content_scripts/chess.js", "content_scripts/contentscript.js" ]
     }
   ],
+  "externally_connectable": {
+    "matches": [ "*://*.lichess.org/*" ]
+  },
   "browser_action": {
     "default_icon": {
       "64": "images/horse_100.png"
