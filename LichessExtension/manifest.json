@@ -7,7 +7,7 @@
   "content_scripts": [
     {
       "matches": [ "*://*.lichess.org/*" ],
-      "js": [ "content_scripts/chess.js", "content_scripts/contentscript.js" ]
+      "js": [ "content_scripts/chess.js", "content_scripts/content_script.js", "content_scripts/initial_traps.js" ]
     }
   ],
   "externally_connectable": {

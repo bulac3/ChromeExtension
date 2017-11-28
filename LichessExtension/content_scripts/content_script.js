@@ -2,6 +2,7 @@
 var elementWidth = 64;
 var currentFen = "";
 var board = {};
+var trapsForWhitePlayer = true;
 
 function Cord(x, y) {
     this.x = x;
@@ -14,7 +15,7 @@ function Line(x1, y1, x2, y2, color) {
     this.x2 = x2;
     this.y2 = y2;
     this.color = color;
-    this.hash = getHash();
+    this.hash = this.getHash();
 }
 
 Line.prototype.getHash = function() {
@@ -23,7 +24,7 @@ Line.prototype.getHash = function() {
 
 /////////////// board read functions
 function getBoard() {
-    return document.querySelector(".cg-board-wrap");
+    return document.querySelector(".cg-board-wrap").parentElement;
 }
 
 function getCurrentChessObject() {
@@ -79,26 +80,40 @@ function getVertical(cellString) {
 }
 
 function getHorizontal(cellString) {
-    return cellString.charCodeAt(1) - 1;
+    return cellString.charCodeAt(1) - 49;
 }
 
-function convertMoveToLine(move, forWhitePlayer) {
+function mirrorRevert(i) {
+    return Math.abs(7 - i);
+}
+
+function convertMoveToLine(move) {
     var line = new Line();
     line.x1 = getVertical(move.from);
     line.y1 = getHorizontal(move.from);
     line.x2 = getVertical(move.to);
     line.y2 = getHorizontal(move.to);
     line.color = "#003088";
+    if (trapsForWhitePlayer) {
+        line.y1 = mirrorRevert(line.y1);
+        line.y2 = mirrorRevert(line.y2);
+    }
+    else {
+        line.x1 = mirrorRevert(line.x1);
+        line.x2 = mirrorRevert(line.x2);
+    }
+    return line;
 }
 
 function getMoveLines(trapStorage, fen) {
     var moveLines = [];
-    var traps = trapStorage.byFen[fen];
-    if (traps == undefined) {
-        return;
+    var traps = trapStorage.idByFen[fen];
+    if (!traps || !traps.length) {
+        return false;
     }
     for (var i = 0; i < traps.length; i++) {
-        var nextMove = traps[i].nextMoveByFen[fen];        
+        var trap = trapStorage.byId[traps[i]];
+        var nextMove = trap.nextMoveByFen[fen];
         var line = convertMoveToLine(nextMove);
         var alreadyContain = moveLines.some(function (currentValue, index, array) {
             currentValue.hash == line.hash;
@@ -113,9 +128,10 @@ function getMoveLines(trapStorage, fen) {
 function timerDrawTraps(trapManager) {
     var chess = getCurrentChessObject();
     var fen = chess.fen();
+    //console.log("fen - " + fen + " currentFen - " + currentFen);
     if (fen != currentFen) {
         clearLines();
-        var moveLines = getMoveLines(trapManager.trapStorage, fen);
+        var moveLines = getMoveLines(trapManager.trapStorage, fen);        
         if (!moveLines) {
             return;
         }
@@ -136,7 +152,7 @@ function Trap() {
 
 function TrapStorage() {
     this.byId = {};
-    this.byFen = {};
+    this.idByFen = {};
 };
 
 function TrapManager(trapStorage) {
@@ -176,28 +192,33 @@ TrapManager.prototype.generateTrapId = function (moves) {
 };
 
 TrapManager.prototype.addTrap = function (trap) {
+
+    console.log("trap.id " + trap.id);    
     if (this.trapStorage.byId[trap.id] != undefined) {
-        return;
+        return false;
     }
     this.trapStorage.byId[trap.id] = trap;
-    for (var fen in trap.fens) {
-        if (this.trapStorage.byFen[fen] != undefined) {
-            this.trapStorage.byFen[fen].push(trap.id);
+    for (var fen in trap.fensOrder) {
+        console.log("fen");
+        console.log(trap.fensOrder[fen]);
+        if (this.trapStorage.idByFen[trap.fensOrder[fen]] != undefined) {
+            this.trapStorage.idByFen[trap.fensOrder[fen]].push(trap.id);
         } else {
-            this.trapStorage.byFen[fen] = [trap.id]
+            this.trapStorage.idByFen[trap.fensOrder[fen]] = [trap.id]
         }
     }
+    console.log(this.trapStorage);
+    return true;
 };
 
 TrapManager.prototype.loadStore = function(callback) {
     var self = this;
     chrome.runtime.sendMessage({ action: "getStorage" }, function (response) {
-        //this.trapStorage = response.storage;
         chrome.storage.sync.get("trapStorage", function (item) {
             if (item && item.byId) {
                 self.trapStorage = item;
             } else {
-                self.trapStorage = new TrapStorage();
+                self.trapStorage = initialTrapStorage;//new TrapStorage();//;
             }
             callback();
         });
@@ -211,6 +232,7 @@ TrapManager.prototype.loadStore = function(callback) {
     if (board == null) {
         return;
     }
+    trapsForWhitePlayer = board.querySelector(".orientation-white") != null;
     var trapManager = new TrapManager();
     console.log("load store");
     trapManager.loadStore(afterTrapManagerLoaded);
@@ -229,20 +251,24 @@ TrapManager.prototype.loadStore = function(callback) {
               console.log(`receive message with action ${request.action}`);
               if (request.action == "addTrap") {
                   var trap = trapManager.getTrapObject();
-                  console.log("trapManager.trapStorage")
-                  console.log(trapManager.trapStorage)
-                  trapManager.addTrap(trap);
-                  alert("trap added");
+                  var resultAdding = trapManager.addTrap(trap);
+                  if (resultAdding) {
+                      console.log("trapStorage")
+                      console.log(trapManager.trapStorage)
+                      console.log("trapStorage json")
+                      console.log(JSON.stringify(trapManager.trapStorage))
+                      alert("trap added");
+                  } else {
+                      alert("duplicated trap");
+                  }
               }
           });
 
         elementWidth = board.clientWidth / dimention;
 
-        setTimeout(function () {
-            setInterval(function () {
-                timerDrawTraps(trapManager);
-            }, 500)
-        }, 3000);
+        setInterval(function () {
+            timerDrawTraps(trapManager);
+        }, 500)
 
         //drawLine(1, 1, 2, 3);
         //var from = new Cord(1,1);
