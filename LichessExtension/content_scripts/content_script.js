@@ -3,7 +3,7 @@ var elementWidth = 64;
 var currentFen = "";
 var board = {};
 var timerId = null;
-
+var analisPage = false;
 
 function Cord(x, y) {
     this.x = x;
@@ -29,12 +29,17 @@ function getBoard() {
 }
 
 function getCurrentChessObject() {
-    var moves = document.querySelectorAll(".moves > move");
     var chess = new Chess();
-    for (var i = 0; i < moves.length; i++) {
-        if (moves[i].lastChild.textContent) {
-            chess.move(moves[i].lastChild.textContent.replace("х", "x"),
-                { sloppy: true });
+    if (analisPage) {
+        var pgn = document.querySelector(".underboard .pgn textarea").value;
+        chess.load_pgn(pgn);
+    } else {
+        var moves = document.querySelectorAll(".moves > move");
+        for (var i = 0; i < moves.length; i++) {
+            if (moves[i].lastChild.textContent) {
+                chess.move(moves[i].lastChild.textContent.replace("х", "x"),
+                    { sloppy: true });
+            }
         }
     }
     return chess;
@@ -218,19 +223,15 @@ TrapManager.prototype.addTrap = function (trap) {
 
 TrapManager.prototype.loadStore = function(callback) {
     var self = this;
-    chrome.runtime.sendMessage({ action: "getTrapStorage" }, function (response) {
-        chrome.storage.local.get("trapStorage", function (item) {
-            //alert("item");
-            //alert(JSON.stringify(item));
-            if (item && item.byId) {
-                self.trapStorage = item;
-                alert("from storager");
-            } else {
-                self.trapStorage = initialTrapStorage;//new TrapStorage();//;
-                alert("init from file");
-            }
-            callback();
-        });
+    chrome.storage.sync.get("trapStorage", function (item) {
+        if (item && item.trapStorage) {
+            self.trapStorage = item.trapStorage;
+            console.log("load trap storage from sync");
+        } else {
+            self.trapStorage = initialTrapStorage;//new TrapStorage();//;
+            console.log("load trap storage from file");
+        }
+        callback();
     });
 };
 ///////////////
@@ -251,50 +252,34 @@ TrapManager.prototype.loadStore = function(callback) {
         alert("Load trap storage error.")
         return;
     }
+    analisPage = document.URL.startsWith("https://lichess.org/analysis");
+
     console.log("store loaded");
     console.log(trapManager.trapStorage);        
 
-    console.log("set listenert");
+    console.log("set listener");
+    var messageCallbacks = {
+        "addTrap": onAddTrapMessage,
+        "getTrapStorage": onGetTrapStorageMessage,
+        "getIsExtesionWorkOnPage": onGetIsExtesionWorkOnPageMessage,
+        "setIsExtesionWorkOnPage": onSetIsExtesionWorkOnPageMessage,
+        "resetTraps": onResetTrapsMessage,
+    }
+
     chrome.runtime.onMessage.addListener(
         function (request, sender, sendResponse) {
             console.log(`receive message with action ${request.action}: \n${JSON.stringify(request)}`);
-            if (request.action == "addTrap") {
-                onAddTrapMessage(trapManager);
-            } else if (request.action == "getTrapStorage") {
-                sendResponse(trapManager.trapStorage);
-            } else if (request.action == "getIsExtesionWorkOnPage") {
-                sendResponse(timerId != null);
-            } else if (request.action == "setIsExtesionWorkOnPage") {
-                if (request.isEnabled) {
-                    runExtensionOnPage();
-                } else {
-                    stopExtensionOnPage();
-                }
-            }
+            if (messageCallbacks[request.action]) {
+                messageCallbacks[request.action](request.parameters, sender, sendResponse);
+            } else {
+                console.error(`unrecognizes action ${request.action}: \n${JSON.stringify(request)}`);
+            }         
         }
     );
 
     runExtensionOnPage();
 
-    function onAddTrapMessage(trapManager) {
-        var trap = trapManager.getTrapObject();
-        var trapName = prompt("Enter trap name. Leave blank to avoid saving.");
-        if (!trapName) {
-            alert("Saving canceled by user.");
-            return;
-        }
-        trap.name = trapName;
-        var resultAdding = trapManager.addTrap(trap);
-        if (resultAdding) {
-            console.log("trapStorage json")
-            console.log(JSON.stringify(trapManager.trapStorage))
-            alert("Trap added.");
-        } else {
-            alert("Trap not added. Same trap already exist.");
-        }
-    }
-
-    function onAddTrapMessage(trapManager) {
+    function onAddTrapMessage(request, sender, sendResponse) {
         var trap = trapManager.getTrapObject();
         var trapName = prompt("Enter trap name. Leave blank to avoid saving.");
         if (!trapName) {
@@ -310,7 +295,23 @@ TrapManager.prototype.loadStore = function(callback) {
         } else {
             alert("Trap not added. Same trap already exist.");
         }
-    }           
+    }
+
+    function onGetTrapStorageMessage(parameters, sender, sendResponse) {
+        sendResponse(trapManager.trapStorage);
+    }
+
+    function onGetIsExtesionWorkOnPageMessage(parameters, sender, sendResponse) {
+        sendResponse(timerId != null);
+    }
+
+    function onSetIsExtesionWorkOnPageMessage(parameters, sender, sendResponse) {
+        if (request.isEnabled) {
+            runExtensionOnPage();
+        } else {
+            stopExtensionOnPage();
+        }
+    }
 
     function runExtensionOnPage() {
         if (timerId == null) {
@@ -326,21 +327,42 @@ TrapManager.prototype.loadStore = function(callback) {
         clearLines();
     }
 
-    //drawLine(1, 1, 2, 3);
-    //var from = new Cord(1,1);
-    //var to = new Cord(3,3);
-    //drawLineByCoords(from, to);
+    function onResetTrapsMessage(parameters, sender, sendResponse) {
+        chrome.storage.sync.set({ "trapStorage": initialTrapStorage }, function () {
+            Object.assign(trapManager.trapStorage, initialTrapStorage);
+            alert("Traps reseted.");
+        });
+    }
 
+    function onReloadTrapsMessage(parameters, sender, sendResponse) {
+        trapManager.loadStore(function () {
+            alert("Store reloaded");
+        });
+    }
+        
     console.log(getCurrentChessObject().ascii());
 
-    //chrome.storage.local.set({ "trapStorage": trapStorage }, function(){
+    //chrome.storage.sync.set({ "trapStorage": trapStorage }, function(){
     //    //  A data saved callback omg so fancy
     //});
 
     //chrome.runtime.sendMessage({
     //    action: "boardFind",
     //    isFound: findBoard()
-    //});
+        //});
+
+
+    //function loadTraps(callback) {
+    //    chrome.storage.sync.get("trapStorage", function (items) {
+    //        this.trapStorage = items.trapStorage;
+    //    });
+    //}
+
+    //function saveTraps() {
+    //    chrome.storage.sync.set({ "trapStorage": this.trapStorage }, function (items) {
+    //        return items.trapStorage;
+    //    });
+    //}
     }
 })()
 
