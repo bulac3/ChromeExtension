@@ -1,7 +1,31 @@
+.menu {
+    width: 30em;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+}
+
 .menu-item:hover {
     background-color: #D8EFFF;
 }
 
-.menu {
-    width: 30em;
+.hover-icons {
+    position: absolute;
+    right: 10px;
+    display: none;
 }
+
+.menu-item:hover .hover-icons {
+    display: block;
+}
+
+.delete-button {
+    width: 1em;
+    height: 1em;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+}
+

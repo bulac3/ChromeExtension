@@ -69,6 +69,7 @@ function drawLine(x1, y1, x2, y2, color) {
 function clearLines() {
     var svg = document.querySelector(".cg-board-wrap").querySelector("svg");
     var lines = svg.querySelectorAll("line");
+    
     for (var i = 0; i < lines.length; i++) {
         lines[i].parentElement.removeChild(lines[i]);
     }
@@ -140,6 +141,7 @@ function timerDrawTraps(trapManager) {
     var chess = getCurrentChessObject();
     var fen = chess.fen();
     if (fen != currentFen) {
+        currentFen = fen;
         clearLines();
         var moveLines = getMoveLines(trapManager.trapStorage, fen);        
         if (!moveLines) {
@@ -148,94 +150,6 @@ function timerDrawTraps(trapManager) {
         drawLines(moveLines);
     }
 }
-/////////////// trap manager
-function Trap() {
-    this.id = "";
-    this.name = "";
-    this.nextMoveByFen = {};
-    this.fensOrder = [];
-    this.finalFen = "";
-    this.pgn = "";
-    this.moves = "";
-    this.winColor = "w";// w - trap for white win, b - for black win
-};
-
-function TrapStorage() {
-    this.byId = {};
-    this.idByFen = {};
-};
-
-function TrapManager(trapStorage) {
-    this.trapStorage = trapStorage;
-};
-
-TrapManager.prototype.getTrapObject = function () {
-    var chess = new Chess();
-    var pgn = document.querySelector(".underboard .pgn textarea").value;
-    chess.load_pgn(pgn);
-
-    var trap = new Trap();
-    trap.pgn = pgn;
-    trap.finalFen = chess.fen();
-    var lastMove = {};
-    var fensRevense = [];
-    var lastMoves = [];
-    while ((lastMove = chess.undo()) != null) {
-        var fen = chess.fen();
-        trap.nextMoveByFen[fen] = lastMove;
-        trap.fensOrder.push(fen);
-        lastMoves.push(lastMove);
-    }
-    trap.fensOrder.reverse();
-    lastMoves.reverse();
-    trap.id = this.generateTrapId(lastMoves);
-    trap.moves = lastMoves;
-    return trap;
-};
-
-TrapManager.prototype.generateTrapId = function (moves) {
-    var id = "";
-    for (var i = 0; i < moves.length; i++) {
-        id += `${moves[i].from}|${moves[i].to}|`;
-    }
-    return id;
-};
-
-TrapManager.prototype.addTrap = function (trap) {
-
-    console.log("trap.id " + trap.id);    
-    if (this.trapStorage.byId[trap.id] != undefined) {
-        return false;
-    }
-    this.trapStorage.byId[trap.id] = trap;
-    for (var fen in trap.fensOrder) {
-        console.log("fen");
-        console.log(trap.fensOrder[fen]);
-        if (this.trapStorage.idByFen[trap.fensOrder[fen]] != undefined) {
-            this.trapStorage.idByFen[trap.fensOrder[fen]].push(trap.id);
-        } else {
-            this.trapStorage.idByFen[trap.fensOrder[fen]] = [trap.id]
-        }
-    }
-    console.log(this.trapStorage);
-    return true;
-};
-
-TrapManager.prototype.loadStore = function(callback) {
-    var self = this;
-    chrome.storage.sync.get("trapStorage", function (item) {
-        if (item && item.trapStorage) {
-            self.trapStorage = item.trapStorage;
-            console.log("load trap storage from sync");
-        } else {
-            self.trapStorage = initialTrapStorage;//new TrapStorage();//;
-            console.log("load trap storage from file");
-        }
-        callback();
-    });
-};
-///////////////
-
 
 (function onLoad() {
     board = getBoard();
@@ -260,10 +174,12 @@ TrapManager.prototype.loadStore = function(callback) {
     console.log("set listener");
     var messageCallbacks = {
         "addTrap": onAddTrapMessage,
+        "deleteTrap": onDeleteTrapMessage,
+        "saveTraps": onSaveTrapsMessage,
         "getTrapStorage": onGetTrapStorageMessage,
         "getIsExtesionWorkOnPage": onGetIsExtesionWorkOnPageMessage,
         "setIsExtesionWorkOnPage": onSetIsExtesionWorkOnPageMessage,
-        "resetTraps": onResetTrapsMessage,
+        "resetTraps": onResetTrapsMessage,        
     }
 
     chrome.runtime.onMessage.addListener(
@@ -279,7 +195,7 @@ TrapManager.prototype.loadStore = function(callback) {
 
     runExtensionOnPage();
 
-    function onAddTrapMessage(request, sender, sendResponse) {
+    function onAddTrapMessage(parameters, sender, sendResponse) {
         var trap = trapManager.getTrapObject();
         var trapName = prompt("Enter trap name. Leave blank to avoid saving.");
         if (!trapName) {
@@ -297,6 +213,26 @@ TrapManager.prototype.loadStore = function(callback) {
         }
     }
 
+    function onDeleteTrapMessage(parameters, sender, sendResponse) {
+        var id = parameters.id;
+        var trapStorage = trapManager.trapStorage;
+        var deletedTrap = trapStorage.byId[id];
+        for (var i = 0; i < deletedTrap.fensOrder.length; i++) {
+            var fen = deletedTrap.fensOrder[i];
+            var index = trapStorage.idByFen[fen].indexOf(id);
+            if (index > -1) {
+                trapStorage.idByFen[fen].splice(index, 1);
+            }
+        }
+        delete trapStorage.byId[id];
+    }
+
+    function onSaveTrapsMessage(parameters, sender, sendResponse) {
+        var trap = trapManager.saveStore(function () {
+            alert("Traps updated.");
+        });
+    }
+
     function onGetTrapStorageMessage(parameters, sender, sendResponse) {
         sendResponse(trapManager.trapStorage);
     }
@@ -306,7 +242,8 @@ TrapManager.prototype.loadStore = function(callback) {
     }
 
     function onSetIsExtesionWorkOnPageMessage(parameters, sender, sendResponse) {
-        if (request.isEnabled) {
+        if (parameters.isEnabled) {
+            currentFen = "";
             runExtensionOnPage();
         } else {
             stopExtensionOnPage();
@@ -358,11 +295,6 @@ TrapManager.prototype.loadStore = function(callback) {
     //    });
     //}
 
-    //function saveTraps() {
-    //    chrome.storage.sync.set({ "trapStorage": this.trapStorage }, function (items) {
-    //        return items.trapStorage;
-    //    });
-    //}
     }
 })()
 
