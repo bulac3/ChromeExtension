@@ -1,3 +1,7 @@
 .menu-item:hover {
     background-color: #D8EFFF;
 }
+
+.menu {
+    width: 30em;
+}
