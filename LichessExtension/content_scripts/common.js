@@ -51,7 +51,6 @@ TrapManager.prototype.generateTrapId = function (moves) {
 };
 
 TrapManager.prototype.addTrap = function (trap) {
-
     console.log("trap.id " + trap.id);    
     if (this.trapStorage.byId[trap.id] != undefined) {
         return false;
@@ -74,15 +73,17 @@ TrapManager.prototype.saveStore = function (callback) {
     var trapStorage = this.trapStorage;
     console.log("trapStorage");
     console.log(trapStorage);
-    chrome.storage.sync.set({ "trapStorage": trapStorage }, function (item) {
+    chrome.storage.local.set({ "trapStorage": trapStorage }, function (item) {
         console.log("trap storage saved");
-        callback();
+        if (callback) {
+            callback();
+        }
     });
 };
 
 TrapManager.prototype.loadStore = function(callback) {
     var self = this;
-    chrome.storage.sync.get("trapStorage", function (item) {
+    chrome.storage.local.get("trapStorage", function (item) {
         if (item && item.trapStorage) {
             self.trapStorage = item.trapStorage;
             console.log("load trap storage from sync");
@@ -94,25 +95,18 @@ TrapManager.prototype.loadStore = function(callback) {
     });
 };
 
-TrapManager.prototype.saveStore = function (callback) {    
-    var trapStorage = this.trapStorage;
-    console.log("trapStorage");
-    console.log(trapStorage);
-    chrome.storage.sync.set({ "trapStorage": trapStorage }, function (item) {
-        console.log("trap storage saved");
-        callback();
-    });
-};
-
 TrapManager.prototype.deleteTrap = function (id) {
     var id = id;
     var trapStorage = this.trapStorage;
     var deletedTrap = trapStorage.byId[id];
     for (var i = 0; i < deletedTrap.fensOrder.length; i++) {
         var fen = deletedTrap.fensOrder[i];
-        var index = trapStorage.idByFen[fen].indexOf(id);
-        if (index > -1) {
-            trapStorage.idByFen[fen].splice(index, 1);
+        var trapsWithFen = trapStorage.idByFen[fen];
+        if (trapsWithFen) {
+            var index = trapsWithFen.indexOf(id);
+            if (index > -1) {
+                trapStorage.idByFen[fen].splice(index, 1);
+            }
         }
     }
     delete trapStorage.byId[id];

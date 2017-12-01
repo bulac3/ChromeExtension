@@ -10,8 +10,10 @@ function addTrapSendMessage() {
 
 function deleteTrapSendMessage(id) {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "deleteTrap", parameters: { id: id } }, function (response) {            
-            alert("Trap deleted.");
+        chrome.tabs.sendMessage(tabs[0].id, { action: "deleteTrap", parameters: { id: id } }, function (response) {
+            var trapManager = new TrapManager();
+            trapManager.trapStorage = storage;
+            trapManager.deleteTrap(id);
             refreshTrapsList();
         });
     });
@@ -74,18 +76,18 @@ function deleteTrap(id) {
     }
 }
 
-function refreshTrapsList(trapStorage) {
+function refreshTrapsList() {
     var trapListElement = document.querySelector(".menu .trap-list");
     while (trapListElement.firstChild) {
         trapListElement.removeChild(trapListElement.firstChild);
     }
-    for (var id in trapStorage.byId) {
-        if (trapStorage.byId.hasOwnProperty(id)) {
-            var trap = trapStorage.byId[id];
+    for (var id in storage.byId) {
+        if (storage.byId.hasOwnProperty(id)) {
+            var trap = storage.byId[id];
             var newDiv = document.createElement("div");
             newDiv.classList.add("menu-item");
             var textElement = document.createElement("span");
-            textElement.textContent = trap.id + "---" + trap.name;
+            textElement.textContent = trap.name;
             newDiv.appendChild(textElement);
 
             var iconsElement = document.createElement("div");
@@ -106,7 +108,8 @@ function onWindowLoad() {
     sheet.insertRule(`.delete-button {background-image: url(${deleteIconUrl}); }`,
         sheet.cssRules.length);
 
-    getIsEnabledSendMessage(function (enabled) {      
+    getIsEnabledSendMessage(function (enabled) {
+        console.log("enabled - " + enabled);
         document.getElementById("enabled").checked = enabled;
     });
 
@@ -120,7 +123,7 @@ function onWindowLoad() {
 
     getTrapStorageAsync(function (trapStorage) {
         storage = trapStorage;
-        refreshTrapsList(trapStorage);
+        refreshTrapsList();
     });
 }
 
