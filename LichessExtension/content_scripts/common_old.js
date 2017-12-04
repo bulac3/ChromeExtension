@@ -1,4 +1,4 @@
-﻿function Trap() {
+function Trap() {
     this.id = "";
     this.name = "";
     this.nextMoveByFen = {};
@@ -33,7 +33,7 @@ TrapManager.prototype.getTrapObject = function () {
         var fen = chess.fen();
         trap.nextMoveByFen[fen] = lastMove;
         trap.fensOrder.push(fen);
-        lastMoves.push([lastMove.from, lastMove.to]);
+        lastMoves.push(lastMove);
     }
     trap.fensOrder.reverse();
     lastMoves.reverse();
@@ -45,9 +45,9 @@ TrapManager.prototype.getTrapObject = function () {
 TrapManager.prototype.generateTrapId = function (moves) {
     var id = "";
     for (var i = 0; i < moves.length; i++) {
-        id += `${moves[i][0]}|${moves[i][1]}|`;
-    }    
-    return binMD5(id);
+        id += `${moves[i].from}|${moves[i].to}|`;
+    }
+    return id;
 };
 
 TrapManager.prototype.addTrap = function (trap) {
@@ -67,20 +67,6 @@ TrapManager.prototype.addTrap = function (trap) {
     }
     console.log(this.trapStorage);
     return true;
-};
-
-TrapManager.prototype.getTrap = function (id) {
-    return this.trapStorage.byId[id];
-};
-
-TrapManager.prototype.getTrapIterateObject = function () {
-    var traps = [];
-    for (var id in this.trapStorage.byId) {
-        if (this.trapStorage.byId.hasOwnProperty(id)) {
-            traps.push(this.trapStorage.byId[id]);
-        }
-    }
-    return traps;
 };
 
 TrapManager.prototype.saveStore = function (callback) {    
@@ -113,19 +99,15 @@ TrapManager.prototype.deleteTrap = function (id) {
     var id = id;
     var trapStorage = this.trapStorage;
     var deletedTrap = trapStorage.byId[id];
-    //for (var i = 0; i < deletedTrap.fensOrder.length; i++) {
-    //    var fen = deletedTrap.fensOrder[i];
-    //    var trapsWithFen = trapStorage.idByFen[fen];
-    //    if (trapsWithFen) {
-    //        var index = trapsWithFen.indexOf(id);
-    //        if (index > -1) {
-    //            trapStorage.idByFen[fen].splice(index, 1);
-    //        }
-    //    }
-    //}
+    for (var i = 0; i < deletedTrap.fensOrder.length; i++) {
+        var fen = deletedTrap.fensOrder[i];
+        var trapsWithFen = trapStorage.idByFen[fen];
+        if (trapsWithFen) {
+            var index = trapsWithFen.indexOf(id);
+            if (index > -1) {
+                trapStorage.idByFen[fen].splice(index, 1);
+            }
+        }
+    }
     delete trapStorage.byId[id];
 };
-
-function binMD5(str) {
-    return rstr_md5(str2rstr_utf8(str));
-}

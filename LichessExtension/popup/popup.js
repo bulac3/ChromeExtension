@@ -1,4 +1,4 @@
-var storage = {};
+var trapManager = {};
 
 function addTrapSendMessage() {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
@@ -11,8 +11,6 @@ function addTrapSendMessage() {
 function deleteTrapSendMessage(id) {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         chrome.tabs.sendMessage(tabs[0].id, { action: "deleteTrap", parameters: { id: id } }, function (response) {
-            var trapManager = new TrapManager();
-            trapManager.trapStorage = storage;
             trapManager.deleteTrap(id);
             refreshTrapsList();
         });
@@ -55,7 +53,6 @@ function resetTrapsSendMessage() {
     });
 }
 
-
 function iconClickDelegate(event) {
     var target = event.target;
     var deleteId = target.getAttribute('data-delete-trap-id');
@@ -68,11 +65,12 @@ function iconClickDelegate(event) {
     }
 }
 
-function deleteTrap(id) {
-    var name = storage.byId[id].name;
+function deleteTrap(id) {    
+    var name = trapManager.getTrap(id).name;
     var answer = confirm(`Are you sure you want to delete trap "${name}"?`);    
     if (answer) {
         deleteTrapSendMessage(id);
+        trapManager.deleteTrap(id);
     }
 }
 
@@ -81,21 +79,20 @@ function refreshTrapsList() {
     while (trapListElement.firstChild) {
         trapListElement.removeChild(trapListElement.firstChild);
     }
-    for (var id in storage.byId) {
-        if (storage.byId.hasOwnProperty(id)) {
-            var trap = storage.byId[id];
-            var newDiv = document.createElement("div");
-            newDiv.classList.add("menu-item");
-            var textElement = document.createElement("span");
-            textElement.textContent = trap.name;
-            newDiv.appendChild(textElement);
+    console.log("cycle");
+    for (var trap of trapManager.getTrapIterateObject()) {
+        console.log(JSON.stringify(trap));
+        var newDiv = document.createElement("div");
+        newDiv.classList.add("menu-item");
+        var textElement = document.createElement("span");
+        textElement.textContent = trap.name;
+        newDiv.appendChild(textElement);
 
-            var iconsElement = document.createElement("div");
-            iconsElement.classList.add("hover-icons");
-            iconsElement.innerHTML = `<div class="play-button" data-play-trap-id="${trap.id}"></div><div class="delete-button" data-delete-trap-id="${trap.id}"></div>`
-            newDiv.appendChild(iconsElement);
-            trapListElement.appendChild(newDiv);
-        }
+        var iconsElement = document.createElement("div");
+        iconsElement.classList.add("hover-icons");
+        iconsElement.innerHTML = `<div class="play-button" data-play-trap-id="${trap.id}"></div><div class="delete-button" data-delete-trap-id="${trap.id}"></div>`
+        newDiv.appendChild(iconsElement);
+        trapListElement.appendChild(newDiv);
     }
 }
 
@@ -122,7 +119,8 @@ function onWindowLoad() {
     trapListElement.addEventListener("click", iconClickDelegate);
 
     getTrapStorageAsync(function (trapStorage) {
-        storage = trapStorage;
+        trapManager = new TrapManager();
+        trapManager.trapStorage = trapStorage;
         refreshTrapsList();
     });
 }

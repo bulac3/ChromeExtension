@@ -314,6 +314,7 @@ function main() {
         }
 
         console.log(getCurrentChessObject().ascii());
+        console.log(getCurrentChessObject());
 
         document.onkeydown = function (e) {
             if ((e.ctrlKey && e.keyCode == 'E'.charCodeAt(0)) && !area.offsetHeight) {
