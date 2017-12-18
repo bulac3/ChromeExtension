@@ -191,7 +191,7 @@ function main() {
     function afterTrapManagerLoaded() {
         if (!trapManager.trapStorage) {
             alert("Load trap storage error.")
-            return;
+            return; 
         }
         analisPage = document.URL.startsWith("https://lichess.org/analysis");
 
@@ -203,6 +203,7 @@ function main() {
             "addTrap": onAddTrapMessage,
             "deleteTrap": onDeleteTrapMessage,
             "saveTraps": onSaveTrapsMessage,
+            "saveTrapsToFile": onSaveTrapsToFileMessage,
             "getTrapStorage": onGetTrapStorageMessage,
             "getIsExtesionWorkOnPage": onGetIsExtesionWorkOnPageMessage,
             "setIsExtesionWorkOnPage": onSetIsExtesionWorkOnPageMessage,
@@ -264,6 +265,10 @@ function main() {
             var trap = trapManager.saveStore(function () {
                 alert("Traps updated.");
             });
+        }
+
+        function onSaveTrapsToFileMessage(parameters, sender, sendResponse) {
+          trapManager.saveTrapStorageAsJSON();
         }
 
         function onGetTrapStorageMessage(parameters, sender, sendResponse) {

@@ -1,45 +1,65 @@
 ﻿function Trap() {
     this.id = "";
     this.name = "";
-    this.nextMoveByFen = {};
-    this.fensOrder = [];
-    this.finalFen = "";
-    this.pgn = "";
     this.moves = "";
     this.winColor = "w";// w - trap for white win, b - for black win
 };
 
 function TrapStorage() {
     this.byId = {};
-    this.idByFen = {};
+    this.hashTree = {"traps": [], "leafs": {}, "parent": null};
 };
 
 function TrapManager(trapStorage) {
     this.trapStorage = trapStorage;
 };
 
+TrapManager.prototype.getTreeLevelId = function (move) {
+  return `${move[0]}_${move[1]}`;
+}
+
+TrapManager.prototype.addToTree = function (trap) {
+    var currentLevel = this.trapStorage.hashTree;
+    for(var i = 0; i < trap.moves.length; i++){
+      var move = trap.moves[i];
+      var id = this.getTreeLevelId(move);
+      if(currentLevel.leafs[id] === undefined) {
+        currentLevel.leafs[id] = {"traps": [], "leafs": {}, "parent": currentLevel};
+        currentLevel = currentLevel.leafs[id];
+      } else {
+        currentLevel = currentLevel.leafs[id];
+      }
+    }
+    currentLevel.traps.push(trap);
+}
+
 TrapManager.prototype.getTrapObject = function () {
     var chess = new Chess();
     var pgn = document.querySelector(".underboard .pgn textarea").value;
     chess.load_pgn(pgn);
-
+    
     var trap = new Trap();
-    trap.pgn = pgn;
-    trap.finalFen = chess.fen();
+    trap.moves = this.getMovesFromChessObject(chess);    
+    trap.id = this.generateTrapId(trap.moves);
+    return trap;
+};
+
+TrapManager.prototype.getMovesFromChessObject = function (chess) {
     var lastMove = {};
-    var fensRevense = [];
     var lastMoves = [];
+    var treeIds = [];
     while ((lastMove = chess.undo()) != null) {
         var fen = chess.fen();
-        trap.nextMoveByFen[fen] = lastMove;
-        trap.fensOrder.push(fen);
         lastMoves.push([lastMove.from, lastMove.to]);
     }
-    trap.fensOrder.reverse();
     lastMoves.reverse();
-    trap.id = this.generateTrapId(lastMoves);
-    trap.moves = lastMoves;
-    return trap;
+    return lastMoves;
+};
+
+TrapManager.prototype.saveTrapStorageAsJSON = function () {
+    //function saveFile(text, name, type) {
+    var str = JSON.stringify(this.trapStorage);
+    saveFile(str, "trap storage.json", "application/json");
 };
 
 TrapManager.prototype.generateTrapId = function (moves) {
@@ -51,20 +71,7 @@ TrapManager.prototype.generateTrapId = function (moves) {
 };
 
 TrapManager.prototype.addTrap = function (trap) {
-    console.log("trap.id " + trap.id);    
-    if (this.trapStorage.byId[trap.id] != undefined) {
-        return false;
-    }
-    this.trapStorage.byId[trap.id] = trap;
-    for (var fen in trap.fensOrder) {
-        console.log("fen");
-        console.log(trap.fensOrder[fen]);
-        if (this.trapStorage.idByFen[trap.fensOrder[fen]] != undefined) {
-            this.trapStorage.idByFen[trap.fensOrder[fen]].push(trap.id);
-        } else {
-            this.trapStorage.idByFen[trap.fensOrder[fen]] = [trap.id]
-        }
-    }
+    this.addToTree(trap);    
     console.log(this.trapStorage);
     return true;
 };
@@ -129,3 +136,25 @@ TrapManager.prototype.deleteTrap = function (id) {
 function binMD5(str) {
     return rstr_md5(str2rstr_utf8(str));
 }
+
+function saveFile(text, filename) {
+    var pom = document.createElement('a');
+    pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    pom.setAttribute('download', filename);
+
+    if (document.createEvent) {
+        var event = document.createEvent('MouseEvents');
+        event.initEvent('click', true, true);
+        pom.dispatchEvent(event);
+    }
+    else {
+        pom.click();
+    }
+}
+/*
+function saveFile(text, name, type) {
+  var a = document.createElement("a");
+  var file = new Blob([text], {type: type});
+  a.href = URL.createObjectURL(file);
+  a.download = name;
+}*/

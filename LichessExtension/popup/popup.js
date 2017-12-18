@@ -1,55 +1,13 @@
 var trapManager = {};
 
-function addTrapSendMessage() {
+function sendMessage(action, parameters, callback) {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "addTrap" }, function (response) {
-            console.log("resp addTrap received");
+        chrome.tabs.sendMessage(tabs[0].id, { action: action, parameters: parameters }, function (response) {
+            console.log(`sendMessage ${action} received`);
+            if(callback) {
+              callback(response);
+            }
         });
-    });
-}
-
-function deleteTrapSendMessage(id) {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "deleteTrap", parameters: { id: id } }, function (response) {
-            trapManager.deleteTrap(id);
-            refreshTrapsList();
-        });
-    });
-}
-
-function saveTrapsSendMessage() {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "saveTraps" }, function (response) {
-            console.log("resp saveTraps received");
-        });
-    });
-}
-
-function getTrapStorageAsync(callback) {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "getTrapStorage" }, function (response) {
-            callback(response);
-        });
-    });
-}
-
-function setIsEnabledSendMessage(e) {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "setIsExtesionWorkOnPage", parameters: {isEnabled: e.target.checked} }, function (response) { });
-    });
-}
-
-function getIsEnabledSendMessage(callback) {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "getIsExtesionWorkOnPage" }, function (response) {
-            callback(response);            
-        });
-    });
-}
-
-function resetTrapsSendMessage() {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "resetTraps" });
     });
 }
 
@@ -67,9 +25,9 @@ function iconClickDelegate(event) {
 
 function deleteTrap(id) {    
     var name = trapManager.getTrap(id).name;
-    var answer = confirm(`Are you sure you want to delete trap "${name}"?`);    
+    var answer = confirm(`Are you sure you want to delete trap "${name}"?`); 
     if (answer) {
-        deleteTrapSendMessage(id);
+        sendMessage("deleteTrap", { id: id });
         trapManager.deleteTrap(id);
     }
 }
@@ -105,20 +63,21 @@ function onWindowLoad() {
     sheet.insertRule(`.delete-button {background-image: url(${deleteIconUrl}); }`,
         sheet.cssRules.length);
 
-    getIsEnabledSendMessage(function (enabled) {
+    sendMessage("getIsExtesionWorkOnPage", undefined, function (enabled) {
         console.log("enabled - " + enabled);
         document.getElementById("enabled").checked = enabled;
     });
 
-    document.querySelector(".add-trap").addEventListener("click", addTrapSendMessage);
-    document.querySelector(".save-traps").addEventListener("click", saveTrapsSendMessage);
-    document.querySelector(".reset-traps").addEventListener("click", resetTrapsSendMessage);
-    document.getElementById("enabled").addEventListener("click", setIsEnabledSendMessage);
+    document.querySelector(".add-trap").addEventListener("click", function(){sendMessage("addTrap");});
+    document.querySelector(".save-traps").addEventListener("click", function(){sendMessage("saveTraps");});
+    document.querySelector(".save-traps-to-file").addEventListener("click", function(){sendMessage("saveTrapsToFile");});
+    document.querySelector(".reset-traps").addEventListener("click", function(){sendMessage("resetTraps");});
+    document.getElementById("enabled").addEventListener("click", function(e){sendMessage("setIsExtesionWorkOnPage", {isEnabled: e.target.checked});});
 
     var trapListElement = document.querySelector(".menu .trap-list");
     trapListElement.addEventListener("click", iconClickDelegate);
 
-    getTrapStorageAsync(function (trapStorage) {
+    sendMessage("getTrapStorage", undefined, function (trapStorage) {
         trapManager = new TrapManager();
         trapManager.trapStorage = trapStorage;
         refreshTrapsList();
