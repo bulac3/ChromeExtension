@@ -1,0 +1,30 @@
+.traps-menu {
+    width: 30em;
+}
+
+.traps-menu .menu-item {
+    display: flex;
+    align-items: center;
+}
+
+.traps-menu .menu-item:hover {
+    background-color: #D8EFFF;
+}
+
+.traps-menu .hover-icons {
+    position: absolute;
+    right: 10px;
+    display: none;
+}
+
+.traps-menu .menu-item:hover .hover-icons {
+    display: block;
+}
+
+.traps-menu .delete-button {
+    width: 1em;
+    height: 1em;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+}

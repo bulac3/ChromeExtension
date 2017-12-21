@@ -1,14 +1,13 @@
 {
   "manifest_version": 2,
   "name": "Lichess trap",
-  "version": "1.0",
+  "version": "2.0.0.1",
   "permissions": [ "tabs", "storage", "<all_urls>", "unlimitedStorage" ],
   "content_scripts": [
     {
       "matches": [ "*://*.lichess.org/*" ],
       "js": [ "content_scripts/traps.html", "content_scripts/md5.js", "content_scripts/common.js", "content_scripts/chess.js", "content_scripts/initial_traps.js", "content_scripts/content_script.js" ],
-      "css": [ "content_scripts/traps.css"],
-      "web_accessible_resources": [ "images/*.png" ]
+      "css": [ "content_scripts/traps.css"]
     }
   ],
   "externally_connectable": {
@@ -21,5 +20,5 @@
     "default_title": "Lichess trap",
     "default_popup": "popup/popup.html"
   },
-  "web_accessible_resources": [ "images/*.png" ]
+  "web_accessible_resources": [ "images/*.png", "content_scripts/traps.html" ]
 }

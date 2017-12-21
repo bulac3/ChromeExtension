@@ -79,6 +79,7 @@ function onWindowLoad() {
 
     sendMessage("getTrapStorage", undefined, function (trapStorage) {
         trapManager = new TrapManager();
+        console.log(`trapStorage ${JSON.stringify(trapStorage)}`);
         trapManager.trapStorage = trapStorage;
         refreshTrapsList();
     });

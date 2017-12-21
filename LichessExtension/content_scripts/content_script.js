@@ -44,8 +44,7 @@ function getCurrentChessObject() {
         var moves = document.querySelectorAll(".moves > move");
         for (var i = 0; i < moves.length; i++) {
             if (moves[i].lastChild.textContent) {
-                chess.move(moves[i].lastChild.textContent.replace("х", "x"),
-                    { sloppy: true });
+                chess.move(moves[i].lastChild.textContent.replace("х", "x"), { sloppy: true });
             }
         }
     }
@@ -103,10 +102,10 @@ function isBoardOrientationWhite() {
 
 function convertMoveToLine(move) {
     var line = new Line();
-    line.x1 = getVertical(move.from);
-    line.y1 = getHorizontal(move.from);
-    line.x2 = getVertical(move.to);
-    line.y2 = getHorizontal(move.to);
+    line.x1 = getVertical(move[0]);
+    line.y1 = getHorizontal(move[0]);
+    line.x2 = getVertical(move[1]);
+    line.y2 = getHorizontal(move[1]);
     line.color = "#003088";
     var trapsForWhitePlayer = isBoardOrientationWhite();
     if (trapsForWhitePlayer) {
@@ -120,25 +119,34 @@ function convertMoveToLine(move) {
     return line;
 }
 
-function getMoveLines(trapStorage, fen, colorToWin) {
+function getMoveLinesFromMoves(trapStorage, moves, colorToWin) {
     var moveLines = [];
-    var traps = trapStorage.idByFen[fen];
-    if (!traps || !traps.length) {
-        return false;
-    }
-    for (var i = 0; i < traps.length; i++) {
-        var trap = trapStorage.byId[traps[i]];
-        if (trap.winColor != colorToWin) {
-            continue;
+    var currentLevel = trapStorage.hashTree;
+    for (var i = 0; i < moves.length; i++) {
+        var move = moves[i];
+        var moveId = trapManager.getTreeLevelId(move);
+        if(currentLevel.leafs[moveId]){
+            currentLevel = currentLevel.leafs[moveId];
+        } else {
+            currentLevel = undefined;
+            break;
         }
-        var nextMove = trap.nextMoveByFen[fen];
-        var line = convertMoveToLine(nextMove);
-        var alreadyContain = moveLines.some(function (currentValue, index, array) {
-            currentValue.hash == line.hash;
-        })
-        if (!alreadyContain) {
-            moveLines.push(line);
-        }        
+    }
+
+    if (currentLevel && currentLevel.leafs){
+        for (var prop in currentLevel.leafs) {
+            var nextMove = trapManager.parseTreeLevelId(prop);
+            if (!currentLevel.leafs[prop].winColor[colorToWin]) {
+                continue;
+            }
+            var line = convertMoveToLine(nextMove);
+            var alreadyContain = moveLines.some(function (currentValue, index, array) {
+                return currentValue.hash == line.hash;
+            })
+            if (!alreadyContain) {
+                moveLines.push(line);
+            }
+        }
     }
     return moveLines;
 }
@@ -155,12 +163,13 @@ function getUserColor() {
 
 function timerDrawTraps(trapManager) {
     var chess = getCurrentChessObject();
+    var moves = trapManager.getMovesFromChessObject(chess);
     var fen = chess.fen();
     if (fen != currentFen) {
         currentFen = fen;
         clearLines();
         var colorToWin = getUserColor();
-        var moveLines = getMoveLines(trapManager.trapStorage, fen, colorToWin);
+        var moveLines = getMoveLinesFromMoves(trapManager.trapStorage, moves, colorToWin);
         if (!moveLines) {
             return;
         }
@@ -248,7 +257,8 @@ function main() {
             var resultAdding = trapManager.addTrap(trap);
             trapManager.saveStore();
             if (resultAdding) {
-                console.log("trapStorage json")
+                console.log("trapStorage json");
+                console.log(trapManager.trapStorage);
                 console.log(JSON.stringify(trapManager.trapStorage))
                 alert("Trap added.");
             } else {
@@ -289,11 +299,17 @@ function main() {
         }
 
         function runExtensionOnPage() {
-            if (timerId == null) {
-                timerId = setInterval(function () {
-                    timerDrawTraps(trapManager);
-                }, 500)
-            }
+            getRecourceFileContent("content_scripts/traps.html", function (cont) {
+                var menuContainer = document.createElement("div");
+                document.getElementsByClassName("lichess_ground")
+
+
+                if (timerId == null) {
+                    timerId = setInterval(function () {
+                        timerDrawTraps(trapManager);
+                    }, 500)
+                }
+            });
         }
 
         function stopExtensionOnPage() {
@@ -318,36 +334,41 @@ function main() {
             });
         }
 
+        function getRecourceFileContent(name, callback) {// function callback(content)
+            function reqListener() {
+                callback(this.responseText);
+            }
+            var url = chrome.runtime.getURL(name);
+            var req = new XMLHttpRequest();
+            req.onload = reqListener;
+            req.open("get", url, true);
+            req.send();
+        }
+
+
         console.log(getCurrentChessObject().ascii());
         console.log(getCurrentChessObject());
 
         document.onkeydown = function (e) {
-            if ((e.ctrlKey && e.keyCode == 'E'.charCodeAt(0)) && !area.offsetHeight) {
+            if ((e.ctrlKey && e.altKey && e.keyCode == 'E'.charCodeAt(0))) {
                 testFunction();
                 return false;
             }
         };
 
         function testFunction() {
-
+            //getRecourceFileContent("content_scripts/traps.html", function (cont) { alert(cont); });
         }
-
-        //chrome.storage.local.set({ "trapStorage": trapStorage }, function(){
-        //    //  A data saved callback omg so fancy
-        //});
-
-        //chrome.runtime.sendMessage({
-        //    action: "boardFind",
-        //    isFound: findBoard()
-        //});
-
-
-        //function loadTraps(callback) {
-        //    chrome.storage.local.get("trapStorage", function (items) {
-        //        this.trapStorage = items.trapStorage;
-        //    });
-        //}
-
     }
 }
 
+
+
+//function reqListener() {
+//    console.log(this.responseText);
+//}
+
+//var oReq = new XMLHttpRequest();
+//oReq.onload = reqListener;
+//oReq.open("get", "yourFile.txt", true);
+//oReq.send();
