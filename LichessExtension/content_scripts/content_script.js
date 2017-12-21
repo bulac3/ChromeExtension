@@ -222,13 +222,18 @@ function main() {
         chrome.runtime.onMessage.addListener(
             function (request, sender, sendResponse) {
                 console.log(`receive message with action ${request.action}: \n${JSON.stringify(request)}`);
-                if (messageCallbacks[request.action]) {
-                    messageCallbacks[request.action](request.parameters, sender, sendResponse);
-                } else {
-                    console.error(`unrecognizes action ${request.action}: \n${JSON.stringify(request)}`);
-                }
+                handleMessage(request, sender, sendResponse)
             }
         );
+
+        function handleMessage(request, sender, sendResponse) {
+            if (messageCallbacks[request.action]) {
+                messageCallbacks[request.action](request.parameters, sender, sendResponse);
+            } else {
+                console.error(`unrecognizes action ${request.action}: \n${JSON.stringify(request)}`);
+            }
+        }
+
 
         runExtensionOnPage();
 
@@ -301,9 +306,9 @@ function main() {
         function runExtensionOnPage() {
             getRecourceFileContent("content_scripts/traps.html", function (cont) {
                 var menuContainer = document.createElement("div");
-                document.getElementsByClassName("lichess_ground")
-
-
+                menuContainer.innerHTML = cont;
+                document.getElementsByClassName("lichess_ground")[0].appendChild(menuContainer);
+                initMenuJsCode();
                 if (timerId == null) {
                     timerId = setInterval(function () {
                         timerDrawTraps(trapManager);

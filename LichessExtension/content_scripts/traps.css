@@ -1,5 +1,7 @@
 .traps-menu {
-    width: 30em;
+    margin-top: 1em;
+    padding: 1em;
+    border: 1px double black;
 }
 
 .traps-menu .menu-item {
