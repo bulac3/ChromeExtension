@@ -1,3 +1,15 @@
+/*change page CSS*/
+
+.lichess_ground {
+    justify-content: normal !important;
+}
+
+.areplay {
+    height: 200px;
+    flex: none !important;
+}
+
+/*traps-menu*/
 .traps-menu {
     margin-top: 1em;
     padding: 1em;

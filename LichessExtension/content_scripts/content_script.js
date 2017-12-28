@@ -8,11 +8,6 @@ var analisPage = false;
 var getBoardAttempts = 0;
 var getBoardAttemptsMax = 20;
 
-function Cord(x, y) {
-    this.x = x;
-    this.y = y;
-}
-
 function Line(x1, y1, x2, y2, color) {
     this.x1 = x1;
     this.y1 = y1;
@@ -25,6 +20,9 @@ function Line(x1, y1, x2, y2, color) {
 Line.prototype.getHash = function() {
     return this.x1 + this.y1 + this.x2 + this.y2 + this.color;
 }
+
+/////////////// API
+var handleMessage = function(request, sender, sendResponse) { };
 
 /////////////// board read functions
 function getBoard() {
@@ -136,7 +134,7 @@ function getMoveLinesFromMoves(trapStorage, moves, colorToWin) {
     if (currentLevel && currentLevel.leafs){
         for (var prop in currentLevel.leafs) {
             var nextMove = trapManager.parseTreeLevelId(prop);
-            if (!currentLevel.leafs[prop].winColor[colorToWin]) {
+            if (currentLevel.leafs[prop].winColor[colorToWin] == 0) {
                 continue;
             }
             var line = convertMoveToLine(nextMove);
@@ -226,16 +224,15 @@ function main() {
             }
         );
 
-        function handleMessage(request, sender, sendResponse) {
+        handleMessage = function(request, sender, sendResponse) {
             if (messageCallbacks[request.action]) {
                 messageCallbacks[request.action](request.parameters, sender, sendResponse);
             } else {
                 console.error(`unrecognizes action ${request.action}: \n${JSON.stringify(request)}`);
             }
         }
-
-
-        runExtensionOnPage();
+        
+        initExtensionOnPage();
 
         function onAddTrapMessage(parameters, sender, sendResponse) {
             var trap = trapManager.getTrapObject();
@@ -265,8 +262,10 @@ function main() {
                 console.log("trapStorage json");
                 console.log(trapManager.trapStorage);
                 console.log(JSON.stringify(trapManager.trapStorage))
+                sendResponse(true);
                 alert("Trap added.");
             } else {
+                sendResponse(false);
                 alert("Trap not added. Same trap already exist.");
             }
         }
@@ -303,18 +302,22 @@ function main() {
             }
         }
 
-        function runExtensionOnPage() {
+        function initExtensionOnPage() {
             getRecourceFileContent("content_scripts/traps.html", function (cont) {
                 var menuContainer = document.createElement("div");
                 menuContainer.innerHTML = cont;
                 document.getElementsByClassName("lichess_ground")[0].appendChild(menuContainer);
                 initMenuJsCode();
-                if (timerId == null) {
-                    timerId = setInterval(function () {
-                        timerDrawTraps(trapManager);
-                    }, 500)
-                }
+                runExtensionOnPage();
             });
+        }
+
+        function runExtensionOnPage() {
+            if (timerId == null) {
+                timerId = setInterval(function () {
+                    timerDrawTraps(trapManager);
+                }, 500)
+            }
         }
 
         function stopExtensionOnPage() {
@@ -324,13 +327,13 @@ function main() {
         }
 
         function onResetTrapsMessage(parameters, sender, sendResponse) {
-            chrome.storage.local.set({ "trapStorage": initialTrapStorage }, function () {
-                var answer = confirm(`Are you sure you want reset all traps?`);
-                if (answer) {
+            var answer = confirm(`Are you sure you want reset all traps?`);
+            if (answer) {
+                chrome.storage.local.set({ "trapStorage": initialTrapStorage }, function () {
                     Object.assign(trapManager.trapStorage, initialTrapStorage);
                     alert("Traps reseted.");
-                }
-            });
+                });
+            }
         }
 
         function onReloadTrapsMessage(parameters, sender, sendResponse) {

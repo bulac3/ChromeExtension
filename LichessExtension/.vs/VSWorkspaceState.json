@@ -1,9 +1,7 @@
 {
   "ExpandedNodes": [
     "",
-    "\\content_scripts",
-    "\\images",
-    "\\popup"
+    "\\content_scripts"
   ],
   "SelectedNode": "\\manifest.json",
   "PreviewInSolutionExplorer": false

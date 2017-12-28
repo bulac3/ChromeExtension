@@ -7,7 +7,7 @@
 
 function TrapStorage() {
     this.byId = {};
-    this.hashTree = { "traps": [], "leafs": {}, "parent": null, "winColor": {"w": false, "b": false}};
+    this.hashTree = { "traps": [], "leafs": {}, "winColor": {"w": 0, "b": 0}};
 };
 
 function TrapManager(trapStorage) {
@@ -28,14 +28,14 @@ TrapManager.prototype.addToTree = function (trap) {
       var move = trap.moves[i];
       var id = this.getTreeLevelId(move);
       if(currentLevel.leafs[id] === undefined) {
-          currentLevel.leafs[id] = { "traps": [], "leafs": {}, "parent": currentLevel, "winColor": {"w": false, "b": false}};
+          currentLevel.leafs[id] = { "traps": [], "leafs": {}, "winColor": {"w": 0, "b": 0}};
         currentLevel = currentLevel.leafs[id];
       } else {
         currentLevel = currentLevel.leafs[id];
       }
-      currentLevel.winColor[trap.winColor] = true;
+      currentLevel.winColor[trap.winColor]++;
     }
-    currentLevel.traps.push(trap);
+    currentLevel.traps.push(trap.id);
 }
 
 TrapManager.prototype.getTrapObject = function () {
@@ -77,7 +77,7 @@ TrapManager.prototype.generateTrapId = function (moves) {
 };
 
 TrapManager.prototype.addTrap = function (trap) {
-    this.trapStorage.byId[trap.Id] = trap;
+    this.trapStorage.byId[trap.id] = trap;
     this.addToTree(trap);    
     console.log(this.trapStorage);
     return true;
@@ -127,11 +127,38 @@ TrapManager.prototype.deleteTrap = function (id) {
     var id = id;
     var trapStorage = this.trapStorage;
     var deletedTrap = trapStorage.byId[id];
+    if (!deletedTrap) {
+        return;
+    }
+    var previousLevels = [];
+    var currentLevel = this.trapStorage.hashTree;
+    for (var i = 0; i < deletedTrap.moves.length; i++) {
+        var move = deletedTrap.moves[i];
+        var treeLevelId = this.getTreeLevelId(move);
+        if (currentLevel.leafs[treeLevelId] === undefined) {
+            currentLevel = undefined;
+            break;
+        } else {
+            previousLevels.push[currentLevel];
+            currentLevel = currentLevel.leafs[treeLevelId];
+        }
+    }
+
+    if (currentLevel) {
+        for (var i = 0; i < currentLevel.traps.length; i++)
+        if (currentLevel.traps[i] === id) {
+            currentLevel.traps.splice(i, 1);
+            break;
+        }
+        var winColor = deletedTrap.winColor;
+        currentLevel.winColor[winColor]--;
+    }
     delete trapStorage.byId[id];
+    this.saveStore();
 };
 
 function binMD5(str) {
-    return rstr_md5(str2rstr_utf8(str));
+    return rstr2hex(rstr_md5(str2rstr_utf8(str)));
 }
 
 function saveFile(text, filename) {

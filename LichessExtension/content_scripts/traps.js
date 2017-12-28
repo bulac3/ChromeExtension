@@ -1,18 +1,28 @@
-var initMenuJsCode = function (){
+var initMenuJsCode = function () {
     var trapManager = {};
     
     function sendMessage(action, parameters, callback) {
-        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-            chrome.tabs.sendMessage(tabs[0].id, { action: action, parameters: parameters }, function (response) {
-                console.log(`sendMessage ${action} received`);
+        //chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        //    chrome.tabs.sendMessage(tabs[0].id, { action: action, parameters: parameters }, function (response) {
+        //        console.log(`sendMessage ${action} received`);
+        //        if (callback) {
+        //            callback(response);
+        //        }
+        //    });
+        //});
+        handleMessage(
+            { action: action, parameters: parameters },
+            this,
+            function (response) {
+                console.log(`handle message ${action} received`);
                 if (callback) {
                     callback(response);
                 }
-            });
-        });
+            }
+        );
     }
 
-    handleMessage
+    
 
     function iconClickDelegate(event) {
         var target = event.target;
@@ -36,7 +46,7 @@ var initMenuJsCode = function (){
     }
 
     function refreshTrapsList() {
-        var trapListElement = document.querySelector(".menu .trap-list");
+        var trapListElement = document.querySelector(".traps-menu .trap-list");
         while (trapListElement.firstChild) {
             trapListElement.removeChild(trapListElement.firstChild);
         }
@@ -59,21 +69,16 @@ var initMenuJsCode = function (){
 
     var deleteIconUrl = chrome.extension.getURL("images/delete.png");
     var sheet = window.document.styleSheets[0];
-    debugger;
     var menuElement = document.getElementsByClassName("traps-menu")[0];
 
     sheet.insertRule(`.delete-button {background-image: url(${deleteIconUrl}); }`);
 
-    sendMessage("getIsExtesionWorkOnPage", undefined, function (enabled) {
-        console.log("enabled - " + enabled);
-        menuElement.querySelector(".run-extension").checked = enabled;
-    });
     console.log(menuElement.querySelector(".add-trap"));
-    menuElement.querySelector(".add-trap").addEventListener("click", function () { sendMessage("addTrap"); });
+    menuElement.querySelector(".add-trap").addEventListener("click", function () { sendMessage("addTrap", undefined, function () { refreshTrapsList();}); });
     menuElement.querySelector(".save-traps").addEventListener("click", function () { sendMessage("saveTraps"); });
     menuElement.querySelector(".save-traps-to-file").addEventListener("click", function () { sendMessage("saveTrapsToFile"); });
     menuElement.querySelector(".reset-traps").addEventListener("click", function () { sendMessage("resetTraps"); });
-    menuElement.getElementById("enabled").addEventListener("click", function (e) { sendMessage("setIsExtesionWorkOnPage", { isEnabled: e.target.checked }); });
+    menuElement.querySelector("#traps-menu-enabled").addEventListener("click", function (e) { sendMessage("setIsExtesionWorkOnPage", { isEnabled: e.target.checked }); });
 
     var trapListElement = menuElement.querySelector(".trap-list");
     trapListElement.addEventListener("click", iconClickDelegate);
