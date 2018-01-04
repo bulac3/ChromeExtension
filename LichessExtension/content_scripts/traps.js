@@ -22,17 +22,28 @@ var initMenuJsCode = function () {
         );
     }
 
-    
-
     function iconClickDelegate(event) {
         var target = event.target;
         var deleteId = target.getAttribute('data-delete-trap-id');
         if (deleteId) {
             deleteTrap(deleteId);
         }
+        var editId = target.getAttribute('data-edit-trap-id');
+        if (editId) {
+            editTrap(editId);
+        }
         var playId = target.getAttribute('data-play-trap-id');
         if (playId) {
             //playTrap(playId);
+        }
+    }
+
+    function editTrap(id) {
+        var name = trapManager.getTrap(id).name;
+        var trapName = prompt("Edit trap name.", name);
+        if (trapName) {
+            sendMessage("editTrapName", { id: id, name: trapName });
+            trapManager.editTrapName(id, trapName);
         }
     }
 
@@ -51,7 +62,13 @@ var initMenuJsCode = function () {
             trapListElement.removeChild(trapListElement.firstChild);
         }
         console.log("cycle");
-        for (var trap of trapManager.getTrapIterateObject()) {
+        var traps = trapManager.getTrapIterateObject();
+        traps.sort(function (a, b) {
+            if (a.name < b.name) return -1;
+            if (a.name > b.name) return 1;
+            return 0;
+        });        
+        for (var trap of traps) {//trapManager.getTrapIterateObject()) {
             console.log(JSON.stringify(trap));
             var newDiv = document.createElement("div");
             newDiv.classList.add("menu-item");
@@ -61,17 +78,21 @@ var initMenuJsCode = function () {
 
             var iconsElement = document.createElement("div");
             iconsElement.classList.add("hover-icons");
-            iconsElement.innerHTML = `<div class="play-button" data-play-trap-id="${trap.id}"></div><div class="delete-button" data-delete-trap-id="${trap.id}"></div>`
+            iconsElement.innerHTML = `<div class="icon-button play-button" data-play-trap-id="${trap.id}"></div>` +
+                `<div class="icon-button delete-button" data-delete-trap-id="${trap.id}"></div>` +
+                `<div class="icon-button edit-button" data-edit-trap-id="${trap.id}"></div>`;
             newDiv.appendChild(iconsElement);
             trapListElement.appendChild(newDiv);
         }
     }
 
     var deleteIconUrl = chrome.extension.getURL("images/delete.png");
+    var editIconUrl = chrome.extension.getURL("images/edit.png");
     var sheet = window.document.styleSheets[0];
     var menuElement = document.getElementsByClassName("traps-menu")[0];
 
     sheet.insertRule(`.delete-button {background-image: url(${deleteIconUrl}); }`);
+    sheet.insertRule(`.edit-button {background-image: url(${editIconUrl}); }`);
 
     console.log(menuElement.querySelector(".add-trap"));
     menuElement.querySelector(".add-trap").addEventListener("click", function () { sendMessage("addTrap", undefined, function () { refreshTrapsList();}); });

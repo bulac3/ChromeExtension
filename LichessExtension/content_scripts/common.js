@@ -64,7 +64,7 @@ TrapManager.prototype.getMovesFromChessObject = function (chess) {
 };
 
 TrapManager.prototype.saveTrapStorageAsJSON = function () {    
-    var str = JSON.stringify(this.trapStorage, "", 4);
+    var str = JSON.stringify(this.trapStorage, "");
     saveFile(str, "trap storage.json", "application/json");
 };
 
@@ -122,6 +122,13 @@ TrapManager.prototype.loadStore = function(callback) {
         callback();
     });
 };
+
+TrapManager.prototype.editTrapName = function (id, name) {
+    var trapStorage = this.trapStorage;
+    var editedTrap = trapStorage.byId[id];
+    editedTrap.name = name;
+    this.saveStore();
+}
 
 TrapManager.prototype.deleteTrap = function (id) {
     var id = id;

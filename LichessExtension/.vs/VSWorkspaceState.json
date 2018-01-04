@@ -1,8 +1,9 @@
 {
   "ExpandedNodes": [
     "",
-    "\\content_scripts"
+    "\\content_scripts",
+    "\\images"
   ],
-  "SelectedNode": "\\manifest.json",
+  "SelectedNode": "\\content_scripts\\traps.js",
   "PreviewInSolutionExplorer": false
 }

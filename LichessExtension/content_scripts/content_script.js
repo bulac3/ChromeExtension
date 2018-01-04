@@ -208,6 +208,7 @@ function main() {
         console.log("set listener");
         var messageCallbacks = {
             "addTrap": onAddTrapMessage,
+            "editTrapName": onEditTrapNameMessage,
             "deleteTrap": onDeleteTrapMessage,
             "saveTraps": onSaveTrapsMessage,
             "saveTrapsToFile": onSaveTrapsToFileMessage,
@@ -263,11 +264,16 @@ function main() {
                 console.log(trapManager.trapStorage);
                 console.log(JSON.stringify(trapManager.trapStorage))
                 sendResponse(true);
-                alert("Trap added.");
             } else {
                 sendResponse(false);
                 alert("Trap not added. Same trap already exist.");
             }
+        }
+
+        function onEditTrapNameMessage(parameters, sender, sendResponse) {
+            var id = parameters.id;
+            var name = parameters.name;
+            trapManager.editTrapName(id, name);
         }
 
         function onDeleteTrapMessage(parameters, sender, sendResponse) {

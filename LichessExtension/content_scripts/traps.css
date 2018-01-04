@@ -9,6 +9,11 @@
     flex: none !important;
 }
 
+.action_menu {
+    height: 200px;
+    flex: none !important;
+}
+
 /*traps-menu*/
 .traps-menu {
     margin-top: 1em;
@@ -27,10 +32,24 @@
 
 .traps-menu .hover-icons {
     position: absolute;
-    right: 10px;
-    display: none;
+    right: 0px;
+    display: none;    
 }
 
+.icon-button {
+    width: 1em;
+    height: 1em;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+    float: right;
+    margin-left: 3px;
+}
+
+.traps-menu .trap-list {
+    position: relative;
+}
+    
 .traps-menu .menu-item:hover .hover-icons {
     display: block;
 }
@@ -41,4 +60,10 @@
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center center;
+}
+
+.traps-menu .trap-list {
+    height: 22em;
+    overflow-y: scroll;
+    overflow-x: hidden;
 }
